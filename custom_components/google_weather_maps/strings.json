@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a Google weather map",
+        "data": {
+          "api_key": "API key",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "map_type": "Map type"
+        },
+        "data_description": {
+          "api_key": "Google Maps Platform API key with the Weather API enabled.",
+          "map_type": "Auto picks the US or EU precipitation map from the location."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The API key was rejected. Check that the Weather API is enabled for it.",
+      "cannot_connect": "Could not fetch a map tile. Check connectivity and try again.",
+      "not_covered": "This location is outside US/EU weather map coverage. Pick a map type explicitly or use a covered location."
+    },
+    "abort": {
+      "already_configured": "A map for this location and type is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Map rendering options",
+        "data": {
+          "zoom": "Zoom level",
+          "grid_size": "Tile grid size (NxN)",
+          "update_interval": "Refresh interval"
+        },
+        "data_description": {
+          "grid_size": "Each refresh fetches N x N tiles; every tile is a billed API call.",
+          "update_interval": "How often to fetch new tiles. 2x2 tiles every 15 minutes is roughly 11,700 calls per month."
+        }
+      }
+    }
+  },
+  "selector": {
+    "map_type": {
+      "options": {
+        "auto": "Auto (from location)",
+        "US_PRECIPITATION_CURRENT": "US precipitation",
+        "EU_PRECIPITATION_CURRENT": "EU precipitation"
+      }
+    }
+  },
+  "entity": {
+    "camera": {
+      "precipitation_map": {
+        "name": "Precipitation map"
+      }
+    }
+  }
+}

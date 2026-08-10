@@ -1,0 +1,12 @@
+{
+  "domain": "google_weather_maps",
+  "name": "Google Weather Maps",
+  "codeowners": ["@moellere"],
+  "config_flow": true,
+  "documentation": "https://github.com/moellere/hass-google-weather-maps",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/moellere/hass-google-weather-maps/issues",
+  "requirements": ["Pillow"],
+  "version": "0.1.0"
+}
