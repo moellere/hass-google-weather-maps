@@ -43,7 +43,7 @@ Settings → Devices & services → **Add integration** → *Google Weather Maps
 
 | Field | Notes |
 |---|---|
-| API key | Google Maps Platform key with the **Weather API** enabled |
+| API key | Google Maps Platform key with the **Weather API** enabled — see [docs/api-key-setup.md](docs/api-key-setup.md) |
 | Latitude / longitude | Defaults to your Home Assistant home location |
 | Map type | `Auto` picks US/EU from the location |
 
