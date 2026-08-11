@@ -51,3 +51,15 @@ def resolve_map_type(latitude: float, longitude: float) -> str | None:
     if 29.0 <= latitude <= 72.0 and -32.0 <= longitude <= 45.0:
         return MAP_TYPE_EU
     return None
+
+
+def marker_pixel(
+    latitude: float, longitude: float, zoom: int, grid: list[list[tuple[int, int]]]
+) -> tuple[float, float]:
+    """Return the pixel position of a location within a stitched tile grid."""
+    n = 2**zoom
+    x_start, y_start = grid[0][0]
+    tile_x, tile_y, frac_x, frac_y = lat_lon_to_tile(latitude, longitude, zoom)
+    col = (tile_x - x_start) % n
+    row = tile_y - y_start
+    return ((col + frac_x) * TILE_SIZE, (row + frac_y) * TILE_SIZE)

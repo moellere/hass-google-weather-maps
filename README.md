@@ -21,6 +21,11 @@ rationale: [homelab-helper proposal](https://github.com/moellere/homelab-helper/
   never exposed to the frontend as raw Google URLs.
 - Multiple entries supported (different locations, zooms, or regions).
 
+The tiles Google serves are transparent precipitation overlays, so the
+camera composites them onto a dark background and draws a red marker at the
+configured location for orientation. A mostly-dark image means it's dry in
+the covered area — that's expected, not broken.
+
 Note: Google currently serves only a "current" frame per tile — there is no
 timestamped history, so no animated radar loop yet.
 

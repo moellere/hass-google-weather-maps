@@ -9,7 +9,7 @@ import io
 import logging
 
 import aiohttp
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE
@@ -30,7 +30,7 @@ from .const import (
     MAP_TYPE_AUTO,
     TILE_URL,
 )
-from .tiles import TILE_SIZE, resolve_map_type, tile_grid
+from .tiles import TILE_SIZE, marker_pixel, resolve_map_type, tile_grid
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,15 +51,34 @@ async def async_fetch_tile(
         return await resp.read()
 
 
-def _stitch(tiles: list[list[bytes]], grid_size: int) -> bytes:
-    """Combine a grid of tile images into one PNG. Blocking; run in executor."""
-    canvas = Image.new("RGBA", (TILE_SIZE * grid_size, TILE_SIZE * grid_size))
+BACKGROUND_COLOR = (17, 24, 39, 255)
+MARKER_COLOR = (239, 68, 68, 255)
+
+
+def _stitch(tiles: list[list[bytes]], grid_size: int, marker: tuple[float, float]) -> bytes:
+    """Combine a grid of tile images into one PNG. Blocking; run in executor.
+
+    The precipitation tiles are transparent overlays meant for a basemap, so
+    they are composited onto an opaque background; the configured location is
+    drawn as a marker for orientation.
+    """
+    size = TILE_SIZE * grid_size
+    overlay = Image.new("RGBA", (size, size))
     for row_index, row in enumerate(tiles):
         for col_index, tile_bytes in enumerate(row):
             tile = Image.open(io.BytesIO(tile_bytes)).convert("RGBA")
-            canvas.paste(tile, (col_index * TILE_SIZE, row_index * TILE_SIZE))
+            overlay.paste(tile, (col_index * TILE_SIZE, row_index * TILE_SIZE))
+    canvas = Image.alpha_composite(Image.new("RGBA", (size, size), BACKGROUND_COLOR), overlay)
+    draw = ImageDraw.Draw(canvas)
+    marker_x, marker_y = int(marker[0]), int(marker[1])
+    draw.ellipse(
+        (marker_x - 7, marker_y - 7, marker_x + 7, marker_y + 7),
+        outline=MARKER_COLOR,
+        width=2,
+    )
+    draw.ellipse((marker_x - 2, marker_y - 2, marker_x + 2, marker_y + 2), fill=MARKER_COLOR)
     out = io.BytesIO()
-    canvas.save(out, format="PNG")
+    canvas.convert("RGB").save(out, format="PNG")
     return out.getvalue()
 
 
@@ -110,4 +129,7 @@ class GoogleWeatherMapsCoordinator(DataUpdateCoordinator[bytes]):
             ]
         except aiohttp.ClientError as err:
             raise UpdateFailed(f"Error fetching weather map tiles: {err}") from err
-        return await self.hass.async_add_executor_job(_stitch, rows, self.grid_size)
+        marker = marker_pixel(self._latitude, self._longitude, self.zoom, grid)
+        return await self.hass.async_add_executor_job(
+            _stitch, rows, self.grid_size, marker
+        )
