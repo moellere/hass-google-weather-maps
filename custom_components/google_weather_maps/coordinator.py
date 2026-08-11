@@ -9,7 +9,7 @@ import io
 import logging
 
 import aiohttp
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE
@@ -18,11 +18,15 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .basemap import BasemapClient, BasemapError
 from .const import (
+    BASEMAP_BRIGHTNESS,
+    CONF_BASEMAP,
     CONF_GRID_SIZE,
     CONF_MAP_TYPE,
     CONF_UPDATE_INTERVAL,
     CONF_ZOOM,
+    DEFAULT_BASEMAP,
     DEFAULT_GRID_SIZE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DEFAULT_ZOOM,
@@ -55,20 +59,37 @@ BACKGROUND_COLOR = (17, 24, 39, 255)
 MARKER_COLOR = (239, 68, 68, 255)
 
 
-def _stitch(tiles: list[list[bytes]], grid_size: int, marker: tuple[float, float]) -> bytes:
-    """Combine a grid of tile images into one PNG. Blocking; run in executor.
-
-    The precipitation tiles are transparent overlays meant for a basemap, so
-    they are composited onto an opaque background; the configured location is
-    drawn as a marker for orientation.
-    """
-    size = TILE_SIZE * grid_size
-    overlay = Image.new("RGBA", (size, size))
+def _paste_grid(tiles: list[list[bytes]], size: int) -> Image.Image:
+    """Paste a grid of tile images onto one RGBA canvas."""
+    canvas = Image.new("RGBA", (size, size))
     for row_index, row in enumerate(tiles):
         for col_index, tile_bytes in enumerate(row):
             tile = Image.open(io.BytesIO(tile_bytes)).convert("RGBA")
-            overlay.paste(tile, (col_index * TILE_SIZE, row_index * TILE_SIZE))
-    canvas = Image.alpha_composite(Image.new("RGBA", (size, size), BACKGROUND_COLOR), overlay)
+            canvas.paste(tile, (col_index * TILE_SIZE, row_index * TILE_SIZE))
+    return canvas
+
+
+def _stitch(
+    tiles: list[list[bytes]],
+    grid_size: int,
+    marker: tuple[float, float],
+    basemap_tiles: list[list[bytes]] | None,
+) -> bytes:
+    """Combine tile grids into one PNG. Blocking; run in executor.
+
+    The precipitation tiles are transparent overlays, so they are composited
+    onto the dimmed basemap when one is available (dark background otherwise);
+    the configured location is drawn as a marker for orientation.
+    """
+    size = TILE_SIZE * grid_size
+    overlay = _paste_grid(tiles, size)
+    if basemap_tiles is not None:
+        base = _paste_grid(basemap_tiles, size)
+        base = ImageEnhance.Brightness(base).enhance(BASEMAP_BRIGHTNESS)
+        base.putalpha(255)
+    else:
+        base = Image.new("RGBA", (size, size), BACKGROUND_COLOR)
+    canvas = Image.alpha_composite(base, overlay)
     draw = ImageDraw.Draw(canvas)
     marker_x, marker_y = int(marker[0]), int(marker[1])
     draw.ellipse(
@@ -102,6 +123,12 @@ class GoogleWeatherMapsCoordinator(DataUpdateCoordinator[bytes]):
         self._api_key: str = entry.data[CONF_API_KEY]
         self._latitude: float = entry.data[CONF_LATITUDE]
         self._longitude: float = entry.data[CONF_LONGITUDE]
+        self._basemap: BasemapClient | None = (
+            BasemapClient(self._session, self._api_key)
+            if options.get(CONF_BASEMAP, DEFAULT_BASEMAP)
+            else None
+        )
+        self._basemap_warned = False
         self.zoom: int = options.get(CONF_ZOOM, DEFAULT_ZOOM)
         self.grid_size: int = options.get(CONF_GRID_SIZE, DEFAULT_GRID_SIZE)
         map_type: str = entry.data.get(CONF_MAP_TYPE, MAP_TYPE_AUTO)
@@ -129,7 +156,33 @@ class GoogleWeatherMapsCoordinator(DataUpdateCoordinator[bytes]):
             ]
         except aiohttp.ClientError as err:
             raise UpdateFailed(f"Error fetching weather map tiles: {err}") from err
+        basemap_rows = await self._async_basemap_rows(grid)
         marker = marker_pixel(self._latitude, self._longitude, self.zoom, grid)
         return await self.hass.async_add_executor_job(
-            _stitch, rows, self.grid_size, marker
+            _stitch, rows, self.grid_size, marker, basemap_rows
         )
+
+    async def _async_basemap_rows(
+        self, grid: list[list[tuple[int, int]]]
+    ) -> list[list[bytes]] | None:
+        """Fetch basemap tiles for the grid; None disables the basemap layer."""
+        if self._basemap is None:
+            return None
+        try:
+            rows = [
+                await asyncio.gather(
+                    *(self._basemap.async_get_tile(self.zoom, x, y) for x, y in row)
+                )
+                for row in grid
+            ]
+        except BasemapError as err:
+            if not self._basemap_warned:
+                self._basemap_warned = True
+                _LOGGER.warning(
+                    "Basemap unavailable, falling back to plain background"
+                    " (is the Map Tiles API enabled for this key?): %s",
+                    err,
+                )
+            return None
+        self._basemap_warned = False
+        return rows

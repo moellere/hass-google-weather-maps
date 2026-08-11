@@ -31,11 +31,13 @@
         "data": {
           "zoom": "Zoom level",
           "grid_size": "Tile grid size (NxN)",
-          "update_interval": "Refresh interval"
+          "update_interval": "Refresh interval",
+          "basemap": "Show Google basemap under the weather layer"
         },
         "data_description": {
           "grid_size": "Each refresh fetches N x N tiles; every tile is a billed API call.",
-          "update_interval": "How often to fetch new tiles. 2x2 tiles every 15 minutes is roughly 11,700 calls per month."
+          "update_interval": "How often to fetch new tiles. 2x2 tiles every 15 minutes is roughly 11,700 calls per month.",
+          "basemap": "Requires the Map Tiles API enabled on the same key. Basemap tiles are cached, so they cost a handful of calls per restart. Falls back to a plain dark background if unavailable."
         }
       }
     }

@@ -18,6 +18,7 @@ from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -27,10 +28,12 @@ from homeassistant.helpers.selector import (
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from .const import (
+    CONF_BASEMAP,
     CONF_GRID_SIZE,
     CONF_MAP_TYPE,
     CONF_UPDATE_INTERVAL,
     CONF_ZOOM,
+    DEFAULT_BASEMAP,
     DEFAULT_GRID_SIZE,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DEFAULT_ZOOM,
@@ -168,6 +171,10 @@ class GoogleWeatherMapsOptionsFlow(OptionsFlow):
                         unit_of_measurement="min",
                     )
                 ),
+                vol.Required(
+                    CONF_BASEMAP,
+                    default=options.get(CONF_BASEMAP, DEFAULT_BASEMAP),
+                ): BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

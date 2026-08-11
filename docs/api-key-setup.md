@@ -13,12 +13,16 @@ integration, so you only need to do this once.
    a free tier (10,000 calls/month), but Google Maps Platform APIs refuse
    requests from projects without billing enabled.
 
-## 2. Enable the Weather API
+## 2. Enable the Weather API (and Map Tiles API for the basemap)
 
 1. Open [APIs & Services → Library](https://console.cloud.google.com/apis/library)
    and search for **Weather API**, or go directly to
    <https://console.cloud.google.com/apis/library/weather.googleapis.com>.
 2. Click **Enable**.
+3. For the basemap layer under the precipitation overlay (on by default),
+   also enable the **Map Tiles API**:
+   <https://console.cloud.google.com/apis/library/tile.googleapis.com>.
+   Skipping this is fine — the camera falls back to a plain dark background.
 
 Note: the weather map tiles and minute forecast endpoints are
 **Experimental (pre-GA)** features of the Weather API — no separate
@@ -34,7 +38,8 @@ enablement is needed, but coverage is US/EU (tiles) and populated areas
 
 Edit the key and set:
 
-- **API restrictions** → *Restrict key* → select only **Weather API**.
+- **API restrictions** → *Restrict key* → select **Weather API** and
+  **Map Tiles API** (the latter only if you use the basemap layer).
   A leaked key then can't be abused against Maps, Places, etc.
 - **Application restrictions**: use **None** or **IP addresses** (your home's
   public IP, if reasonably static). Do **not** use *Websites* (HTTP referrer)
@@ -52,10 +57,13 @@ Two guardrails, either or both:
 - **Budget alert:** Billing → Budgets & alerts → create a small budget
   (even $1) with email alerts.
 
-Quota context for this integration: each camera refresh fetches one API call
-per tile — the default 2×2 grid at 15 minutes is ~11,700 calls/month, and the
-core `google_weather` integration adds ~4,400/month per location on the same
-key. Stretch the refresh interval or use a 1×1 grid to stay inside the free
+Quota context for this integration: each camera refresh fetches one Weather
+API call per tile — the default 2×2 grid at 15 minutes is ~11,700
+calls/month, and the core `google_weather` integration adds ~4,400/month per
+location on the same key. The basemap layer barely registers: Map Tiles API
+is a separate SKU with its own free tier, and basemap tiles are cached in
+memory, so it costs roughly one session call plus one call per grid tile per
+Home Assistant restart. Stretch the refresh interval or use a 1×1 grid to stay inside the free
 tier. Tile-endpoint SKU pricing is not yet published; assume $0.15/1,000
 beyond the free tier as the conservative estimate.
 

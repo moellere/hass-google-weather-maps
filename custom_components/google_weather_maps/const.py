@@ -24,3 +24,9 @@ TILE_URL: Final = (
     "https://weather.googleapis.com/v1/mapTypes/{map_type}/mapTiles/{zoom}/{x}/{y}"
 )
 ATTRIBUTION: Final = "Weather map data by Google"
+
+CONF_BASEMAP: Final = "basemap"
+DEFAULT_BASEMAP: Final = True
+BASEMAP_SESSION_URL: Final = "https://tile.googleapis.com/v1/createSession"
+BASEMAP_TILE_URL: Final = "https://tile.googleapis.com/v1/2dtiles/{zoom}/{x}/{y}"
+BASEMAP_BRIGHTNESS: Final = 0.65

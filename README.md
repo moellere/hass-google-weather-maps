@@ -22,9 +22,11 @@ rationale: [homelab-helper proposal](https://github.com/moellere/homelab-helper/
 - Multiple entries supported (different locations, zooms, or regions).
 
 The tiles Google serves are transparent precipitation overlays, so the
-camera composites them onto a dark background and draws a red marker at the
-configured location for orientation. A mostly-dark image means it's dry in
-the covered area — that's expected, not broken.
+camera composites them onto a dimmed Google roadmap basemap (Map Tiles API,
+cached so it costs a handful of calls per restart) and draws a red marker at
+the configured location. If the Map Tiles API isn't enabled on the key —
+or the basemap toggle is off in options — it falls back to a plain dark
+background; a mostly-empty image then just means it's dry nearby.
 
 Note: Google currently serves only a "current" frame per tile — there is no
 timestamped history, so no animated radar loop yet.
@@ -53,7 +55,8 @@ Settings → Devices & services → **Add integration** → *Google Weather Maps
 | Map type | `Auto` picks US/EU from the location |
 
 Options (per entry): zoom level (0–16, default 7), tile grid size (1×1 to
-3×3, default 2×2), refresh interval (default 15 min).
+3×3, default 2×2), refresh interval (default 15 min), basemap layer
+(default on; requires Map Tiles API).
 
 ## Quota and cost
 
