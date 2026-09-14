@@ -60,7 +60,9 @@ Two guardrails, either or both:
 Quota context for this integration: each camera refresh fetches one Weather
 API call per tile — the default 2×2 grid at 15 minutes is ~11,700
 calls/month, and the core `google_weather` integration adds ~4,400/month per
-location on the same key. The basemap layer barely registers: Map Tiles API
+location on the same key (plus one live call every time the
+`google_weather.get_minute_forecast` action runs — it is not cached like
+`weather.get_forecasts`). The basemap layer barely registers: Map Tiles API
 is a separate SKU with its own free tier, and basemap tiles are cached in
 memory, so it costs roughly one session call plus one call per grid tile per
 Home Assistant restart. Stretch the refresh interval or use a 1×1 grid to stay inside the free

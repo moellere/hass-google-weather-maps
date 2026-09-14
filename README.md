@@ -63,7 +63,9 @@ Options (per entry): zoom level (0–16, default 7), tile grid size (1×1 to
 Every tile in the grid is one Weather API call per refresh. Defaults
 (2×2 @ 15 min) are ~11,700 calls/month — the API's free tier is 10,000
 calls/month ($0.15/1,000 beyond), *shared* with the `google_weather`
-integration if you use the same key (~4,400 calls/month/location). Widen the
+integration if you use the same key (~4,400 calls/month/location, plus one
+live call per `google_weather.get_minute_forecast` action call — unlike
+`weather.get_forecasts`, that action is not served from cache). Widen the
 refresh interval or drop to 1×1 if you need to stay inside the free tier.
 Tile-endpoint SKU pricing is not yet published; treat the numbers above as
 the conservative estimate.
